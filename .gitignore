@@ -1,0 +1,6 @@
+bin/
+obj/
+
+# Google OAuth client secret and cached user tokens - never commit these
+credentials.json
+token_store/
