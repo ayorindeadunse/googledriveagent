@@ -50,6 +50,10 @@ public class FilterSettings : CommandSettings
     [Description("Only act on the first N matches.")]
     public int? Limit { get; set; }
 
+    [CommandOption("--largest")]
+    [Description("Sort matches by size, largest first. Must be paired with --limit.")]
+    public bool Largest { get; set; }
+
     [CommandOption("--credentials <PATH>")]
     [DefaultValue("credentials.json")]
     [Description("Path to the OAuth client credentials.json downloaded from Google Cloud Console.")]
@@ -77,16 +81,21 @@ public class FilterSettings : CommandSettings
             return ValidationResult.Error("--min-size and --max-size must be non-negative.");
         }
 
+        if (Largest && Limit is null)
+        {
+            return ValidationResult.Error("--largest must be paired with --limit N (e.g. --largest --limit 20) so it's clear how many files you mean.");
+        }
+
         var hasFilter = Audio || !string.IsNullOrWhiteSpace(MimeType) || !string.IsNullOrWhiteSpace(Extension)
             || !string.IsNullOrWhiteSpace(NameContains) || !string.IsNullOrWhiteSpace(Folder)
             || !string.IsNullOrWhiteSpace(OlderThan) || !string.IsNullOrWhiteSpace(NewerThan)
-            || MinSize is not null || MaxSize is not null || !string.IsNullOrWhiteSpace(RawQuery);
+            || MinSize is not null || MaxSize is not null || !string.IsNullOrWhiteSpace(RawQuery) || Largest;
 
         if (!hasFilter)
         {
             return ValidationResult.Error(
                 "Refusing to match every file in Drive. Pass at least one filter (--audio, --mime-type, --ext, " +
-                "--name-contains, --folder, --older-than, --newer-than, --min-size, --max-size, or --query).");
+                "--name-contains, --folder, --older-than, --newer-than, --min-size, --max-size, --query, or --largest).");
         }
 
         return ValidationResult.Success();

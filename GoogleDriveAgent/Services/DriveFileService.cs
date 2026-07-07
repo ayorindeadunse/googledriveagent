@@ -91,6 +91,10 @@ public class DriveFileService
             request.PageSize = 1000;
             request.PageToken = pageToken;
             request.Spaces = "drive";
+            if (filters.Largest)
+            {
+                request.OrderBy = "quotaBytesUsed desc";
+            }
 
             var result = await request.ExecuteAsync(ct);
 

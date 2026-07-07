@@ -45,6 +45,15 @@ dotnet run -- delete --audio --limit 5
 
 # Skip the confirmation prompt (e.g. for a repeat run you've already verified)
 dotnet run -- delete --audio --folder "Voice Recorder" --yes
+
+# Preview the 20 largest files in your whole Drive, regardless of type
+dotnet run -- list --largest --limit 20
+
+# Trash the 10 largest files (asks for confirmation first)
+dotnet run -- delete --largest --limit 10
+
+# The 15 largest audio files specifically
+dotnet run -- list --audio --largest --limit 15
 ```
 
 ### Filters (combine as many as you like; all are ANDed together)
@@ -61,6 +70,7 @@ dotnet run -- delete --audio --folder "Voice Recorder" --yes
 | `--min-size <bytes>` / `--max-size <bytes>` | File size range |
 | `--query <raw Drive query>` | Escape hatch — any [Drive search query](https://developers.google.com/drive/api/guides/search-files) |
 | `--limit <n>` | Only act on the first N matches |
+| `--largest` | Sort matches by size, largest first. Must be paired with `--limit` |
 
 At least one filter is required — the tool refuses to run against "every file in Drive" by accident.
 
