@@ -1,6 +1,9 @@
 bin/
 obj/
 
+# Claude Code local session state - never commit this
+.claude/
+
 # Google OAuth client secret and cached user tokens - never commit these
 credentials.json
 token_store/
