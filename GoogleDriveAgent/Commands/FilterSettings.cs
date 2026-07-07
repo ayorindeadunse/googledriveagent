@@ -15,8 +15,15 @@ public class FilterSettings : CommandSettings
     public string? MimeType { get; set; }
 
     [CommandOption("--ext <EXTENSION>")]
-    [Description("Match files whose name ends with this extension, e.g. .mp3 or .m4a.")]
-    public string? Extension { get; set; }
+    [Description("Match files whose name ends with any of these extensions. Repeat the flag or comma-separate, e.g. --ext .mp3 --ext .wav or --ext .mp3,.wav.")]
+    public string[]? Extension { get; set; }
+
+    public string[] ExtensionList =>
+        Extension is null
+            ? []
+            : Extension
+                .SelectMany(value => value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                .ToArray();
 
     [CommandOption("--name-contains <TEXT>")]
     [Description("Match files whose name contains this text.")]
@@ -86,7 +93,7 @@ public class FilterSettings : CommandSettings
             return ValidationResult.Error("--largest must be paired with --limit N (e.g. --largest --limit 20) so it's clear how many files you mean.");
         }
 
-        var hasFilter = Audio || !string.IsNullOrWhiteSpace(MimeType) || !string.IsNullOrWhiteSpace(Extension)
+        var hasFilter = Audio || !string.IsNullOrWhiteSpace(MimeType) || ExtensionList.Length > 0
             || !string.IsNullOrWhiteSpace(NameContains) || !string.IsNullOrWhiteSpace(Folder)
             || !string.IsNullOrWhiteSpace(OlderThan) || !string.IsNullOrWhiteSpace(NewerThan)
             || MinSize is not null || MaxSize is not null || !string.IsNullOrWhiteSpace(RawQuery) || Largest;

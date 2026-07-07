@@ -54,6 +54,10 @@ dotnet run -- delete --largest --limit 10
 
 # The 15 largest audio files specifically
 dotnet run -- list --audio --largest --limit 15
+
+# Multiple extensions at once - repeat the flag, or comma-separate
+dotnet run -- list --ext .mp3 --ext .wav --ext .m4a
+dotnet run -- delete --ext .mp3,.wav,.m4a
 ```
 
 ### Filters (combine as many as you like; all are ANDed together)
@@ -62,7 +66,7 @@ dotnet run -- list --audio --largest --limit 15
 |---|---|
 | `--audio` | MIME type starts with `audio/` |
 | `--mime-type <value>` | MIME type contains `<value>` |
-| `--ext <.mp3>` | File name ends with this extension |
+| `--ext <.mp3>` | File name ends with this extension. Repeat the flag or comma-separate for multiple, e.g. `--ext .mp3,.wav` |
 | `--name-contains <text>` | File name contains this text |
 | `--folder <name-or-id>` | File lives directly in this folder |
 | `--older-than <yyyy-MM-dd>` | Last modified before this date |

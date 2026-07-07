@@ -55,6 +55,14 @@ public class DriveFileService
             clauses.Add($"name contains '{EscapeForQuery(filters.NameContains)}'");
         }
 
+        if (filters.ExtensionList.Length > 0)
+        {
+            // Drive has no "ends with" query operator, so narrow candidates server-side with a
+            // substring match per extension; MatchesExtension still confirms the exact suffix locally.
+            var extClauses = filters.ExtensionList.Select(ext => $"name contains '{EscapeForQuery(ext.TrimStart('.'))}'");
+            clauses.Add($"({string.Join(" or ", extClauses)})");
+        }
+
         if (!string.IsNullOrWhiteSpace(resolvedFolderId))
         {
             clauses.Add($"'{EscapeForQuery(resolvedFolderId)}' in parents");
@@ -100,7 +108,7 @@ public class DriveFileService
 
             foreach (var file in result.Files ?? Enumerable.Empty<DriveFile>())
             {
-                if (!MatchesExtension(file, filters.Extension) || !MatchesSize(file, filters.MinSize, filters.MaxSize))
+                if (!MatchesExtension(file, filters.ExtensionList) || !MatchesSize(file, filters.MinSize, filters.MaxSize))
                 {
                     continue;
                 }
@@ -157,15 +165,28 @@ public class DriveFileService
         return (succeeded, failed);
     }
 
-    private static bool MatchesExtension(DriveFile file, string? extension)
+    private static bool MatchesExtension(DriveFile file, IReadOnlyList<string> extensions)
     {
-        if (string.IsNullOrWhiteSpace(extension))
+        if (extensions.Count == 0)
         {
             return true;
         }
 
-        var ext = extension.StartsWith('.') ? extension : "." + extension;
-        return file.Name is not null && file.Name.EndsWith(ext, StringComparison.OrdinalIgnoreCase);
+        if (file.Name is null)
+        {
+            return false;
+        }
+
+        foreach (var extension in extensions)
+        {
+            var ext = extension.StartsWith('.') ? extension : "." + extension;
+            if (file.Name.EndsWith(ext, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool MatchesSize(DriveFile file, long? min, long? max)
