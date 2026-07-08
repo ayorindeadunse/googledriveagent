@@ -58,6 +58,16 @@ dotnet run -- list --audio --largest --limit 15
 # Multiple extensions at once - repeat the flag, or comma-separate
 dotnet run -- list --ext .mp3 --ext .wav --ext .m4a
 dotnet run -- delete --ext .mp3,.wav,.m4a
+
+# See your real storage breakdown (active files vs. Trash, which still counts against quota)
+dotnet run -- usage
+
+# Find duplicate files (identical content) and how much space they waste
+dotnet run -- duplicates
+
+# Keep one copy of each duplicate and trash the rest (asks for confirmation first)
+dotnet run -- delete-duplicates
+dotnet run -- delete-duplicates --keep newest --min-size 100000
 ```
 
 ### Filters (combine as many as you like; all are ANDed together)
@@ -77,6 +87,14 @@ dotnet run -- delete --ext .mp3,.wav,.m4a
 | `--largest` | Sort matches by size, largest first. Must be paired with `--limit` |
 
 At least one filter is required — the tool refuses to run against "every file in Drive" by accident.
+
+### Other commands
+
+| Command | Does |
+|---|---|
+| `usage` | Shows total storage usage, split into active Drive files vs. Trash (Trash still counts against your quota until emptied) |
+| `duplicates` | Scans Drive by content checksum (not just name) and reports duplicate sets sorted by wasted space |
+| `delete-duplicates` | Keeps one copy per duplicate set (`--keep oldest`\|`newest`, default oldest) and trashes the rest, after preview + confirmation |
 
 ## Notes
 

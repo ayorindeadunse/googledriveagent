@@ -7,9 +7,17 @@ namespace GoogleDriveAgent.Services;
 
 public record TrashFailure(string Id, string Name, string Error);
 
+public record DuplicateGroup(string Checksum, long FileSize, List<DriveFile> Files)
+{
+    // Files is ordered oldest-first by ModifiedTime.
+    public int Count => Files.Count;
+    public long WastedBytes => FileSize * (Count - 1);
+}
+
 public class DriveFileService
 {
     private const string FileFields = "nextPageToken, files(id, name, mimeType, size, modifiedTime)";
+    private const string DuplicateScanFields = "nextPageToken, files(id, name, mimeType, size, modifiedTime, md5Checksum)";
     private const int BatchSize = 100;
 
     private readonly DriveService _drive;
@@ -124,6 +132,53 @@ public class DriveFileService
         } while (!string.IsNullOrEmpty(pageToken));
 
         return matches;
+    }
+
+    public string BuildDuplicateScanQuery(string? resolvedFolderId)
+    {
+        var clauses = new List<string> { "trashed = false" };
+
+        if (!string.IsNullOrWhiteSpace(resolvedFolderId))
+        {
+            clauses.Add($"'{EscapeForQuery(resolvedFolderId)}' in parents");
+        }
+
+        return string.Join(" and ", clauses);
+    }
+
+    public async Task<List<DriveFile>> ListAllForDuplicateScanAsync(string query, CancellationToken ct)
+    {
+        var files = new List<DriveFile>();
+        string? pageToken = null;
+
+        do
+        {
+            var request = _drive.Files.List();
+            request.Q = query;
+            request.Fields = DuplicateScanFields;
+            request.PageSize = 1000;
+            request.PageToken = pageToken;
+            request.Spaces = "drive";
+
+            var result = await request.ExecuteAsync(ct);
+            files.AddRange(result.Files ?? Enumerable.Empty<DriveFile>());
+            pageToken = result.NextPageToken;
+        } while (!string.IsNullOrEmpty(pageToken));
+
+        return files;
+    }
+
+    public static List<DuplicateGroup> FindDuplicateGroups(IEnumerable<DriveFile> files, long? minSize)
+    {
+        return files
+            // Zero-byte files all share the same MD5 checksum, which would otherwise falsely
+            // group unrelated empty/placeholder files together as "duplicates".
+            .Where(f => !string.IsNullOrEmpty(f.Md5Checksum) && f.Size is > 0 && f.Size >= (minSize ?? 0))
+            .GroupBy(f => f.Md5Checksum!)
+            .Where(g => g.Count() > 1)
+            .Select(g => new DuplicateGroup(g.Key, g.First().Size!.Value, g.OrderBy(f => f.ModifiedTimeDateTimeOffset).ToList()))
+            .OrderByDescending(g => g.WastedBytes)
+            .ToList();
     }
 
     public async Task<(int Succeeded, List<TrashFailure> Failed)> TrashFilesAsync(
