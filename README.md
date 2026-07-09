@@ -28,26 +28,19 @@ dotnet run -- list --audio
 
 ## Build a standalone executable
 
-This packages the app together with the .NET runtime into a single binary, so it can run on this machine (or one with the same OS/architecture) without `dotnet` installed.
+This packages the app together with the .NET runtime into a single binary, so it can run without `dotnet` installed.
 
 ```bash
 cd GoogleDriveAgent
-./publish.sh
+./publish.sh                 # builds for this machine's OS/architecture
+./publish.sh osx-arm64       # or cross-compile for another platform/device
 ```
 
-This detects your OS/architecture and writes a single-file executable to `GoogleDriveAgent/publish/GoogleDriveAgent`. To build for a different platform, pass a [.NET runtime identifier](https://learn.microsoft.com/dotnet/core/rid-catalog) directly, e.g.:
-
-```bash
-dotnet publish -c Release -r osx-arm64 --self-contained true \
-  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
-  -o ./publish
-```
-
-Then set it up like any other install:
+Pass any [.NET runtime identifier](https://learn.microsoft.com/dotnet/core/rid-catalog) (`osx-x64`, `osx-arm64`, `linux-x64`, `linux-arm64`, `win-x64`, ...) — you don't need to be on that OS to build for it. Output goes to `GoogleDriveAgent/publish-<RID>/GoogleDriveAgent` (a `.exe` on Windows).
 
 ```bash
 # Optional: put it on your PATH under a shorter name
-cp publish/GoogleDriveAgent /usr/local/bin/gdrive-agent
+cp publish-osx-arm64/GoogleDriveAgent /usr/local/bin/gdrive-agent
 
 # credentials.json (see setup above) must be either next to wherever you run
 # the executable from, or referenced explicitly:
@@ -55,6 +48,30 @@ gdrive-agent list --audio --credentials /path/to/credentials.json --token-store 
 ```
 
 The executable reads `credentials.json` and writes `token_store/` relative to your **current working directory** by default (same as `--credentials`/`--token-store` defaults) — not relative to the executable's location. Pass explicit `--credentials`/`--token-store` paths if you run it from outside the folder containing them.
+
+## Running on another device / a different Google account
+
+Because the executable is self-contained, **you only need to copy the executable and this README** — not the project source, `bin/`, `obj/`, or `token_store/`. Bring the README along so the new device has the "One-time Google Cloud setup" and "Usage" sections handy without needing the rest of the repo.
+
+1. **Build for the target device's architecture.** If the other device is the same OS/architecture as this one (e.g. also an Intel Mac), `./publish.sh` with no argument already produced `publish-osx-x64/GoogleDriveAgent` — just copy that file over (AirDrop, USB, `scp`). For a different OS/architecture, cross-compile first:
+   ```bash
+   ./publish.sh osx-arm64   # match the target device: osx-x64, osx-arm64, linux-x64, win-x64, ...
+   ```
+   Then copy `publish-<RID>/GoogleDriveAgent` to the new device.
+
+2. **Do the one-time Google Cloud setup again, for the new account.** A different Google account needs its own OAuth client — you can't reuse this project's `credentials.json` unless that Gmail address is added as a Test user on *this* project's OAuth consent screen. For an unrelated account, repeat the steps at the top of this README (new Cloud project, enable Drive API, configure OAuth consent screen, add that Gmail address as a Test user, create a Desktop app OAuth client) and download that project's `credentials.json`.
+
+3. **Do *not* copy `token_store/` from this machine.** It caches a refresh token for *this* Google account; reusing it on the new device would authenticate as the wrong account. Let the new device create its own `token_store/` on first run.
+
+4. **On the new device**, place the new `credentials.json` next to the copied executable and run any command — a browser window opens for that device's login/consent:
+   ```bash
+   ./GoogleDriveAgent list --audio
+   ```
+
+5. **macOS Gatekeeper**: since the binary isn't notarized, macOS may refuse to open it the first time ("cannot be opened because it is from an unidentified developer"), especially if it arrived via a browser download or AirDrop (which sets a quarantine flag). Clear it once with:
+   ```bash
+   xattr -d com.apple.quarantine ./GoogleDriveAgent
+   ```
 
 ## Usage
 

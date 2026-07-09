@@ -1,6 +1,7 @@
 bin/
 obj/
-publish/
+publish*/
+.DS_Store
 
 # Claude Code local session state - never commit this
 .claude/
