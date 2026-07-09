@@ -18,7 +18,7 @@ The first time you run any command, a browser window opens for you to sign in an
 
 `credentials.json` and `token_store/` are already in `.gitignore` — never commit them.
 
-## Build & run
+## Build & run (development)
 
 ```bash
 cd GoogleDriveAgent
@@ -26,9 +26,39 @@ dotnet build
 dotnet run -- list --audio
 ```
 
+## Build a standalone executable
+
+This packages the app together with the .NET runtime into a single binary, so it can run on this machine (or one with the same OS/architecture) without `dotnet` installed.
+
+```bash
+cd GoogleDriveAgent
+./publish.sh
+```
+
+This detects your OS/architecture and writes a single-file executable to `GoogleDriveAgent/publish/GoogleDriveAgent`. To build for a different platform, pass a [.NET runtime identifier](https://learn.microsoft.com/dotnet/core/rid-catalog) directly, e.g.:
+
+```bash
+dotnet publish -c Release -r osx-arm64 --self-contained true \
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
+  -o ./publish
+```
+
+Then set it up like any other install:
+
+```bash
+# Optional: put it on your PATH under a shorter name
+cp publish/GoogleDriveAgent /usr/local/bin/gdrive-agent
+
+# credentials.json (see setup above) must be either next to wherever you run
+# the executable from, or referenced explicitly:
+gdrive-agent list --audio --credentials /path/to/credentials.json --token-store /path/to/token_store
+```
+
+The executable reads `credentials.json` and writes `token_store/` relative to your **current working directory** by default (same as `--credentials`/`--token-store` defaults) — not relative to the executable's location. Pass explicit `--credentials`/`--token-store` paths if you run it from outside the folder containing them.
+
 ## Usage
 
-Always preview with `list` before running `delete` with the same filters.
+Always preview with `list` before running `delete` with the same filters. Examples below use `dotnet run --`; if you built the standalone executable, replace that with the path to it (e.g. `./publish/GoogleDriveAgent` or `gdrive-agent`).
 
 ```bash
 # Preview every audio file in Drive

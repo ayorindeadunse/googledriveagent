@@ -1,5 +1,6 @@
 bin/
 obj/
+publish/
 
 # Claude Code local session state - never commit this
 .claude/
